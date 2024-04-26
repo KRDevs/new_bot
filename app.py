@@ -9,6 +9,8 @@ from aiogram.filters.command import Command
 from keyboards.inline_keyboards import services_btn, wallet_btn, market_btn, setting_btn
 from states.state import ContactState
 
+from utils.crypto_currency import exchange
+
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token="7061261172:AAFUNRyf4rbgiQFM7SEHOrZDWB7eZ3omfBs")
 dp = Dispatcher()
@@ -43,9 +45,22 @@ async def market_msg(callback: types.CallbackQuery):
 
 @dp.callback_query(lambda callback_query: callback_query.data == 'currency')
 async def market_msg(callback: types.CallbackQuery):
-    await bot.send_message(chat_id=callback.message.chat.id,
-                           text="💵 Kriptovalyuta kursi\n1 BNB ~= 5444727.75 UZS\n1 ETH ~=37802500.0 UZS\n1 TON ~=67534.95 UZS\n1 TRX ~=1331.6 UZS\n1 USDT ~=11802.82 UZS",
-                           reply_markup=setting_btn())
+    cryptocurrencies, last_updated = exchange()
+    if not cryptocurrencies:
+        await bot.send_message(callback.message.chat.id, "Error fetching cryptocurrency data.")
+        return
+
+    message = "💵 Kriptovalyuta kursi\n\n\n"
+    for crypto in cryptocurrencies:
+        name = crypto['name']
+        symbol = crypto['symbol']
+        price = crypto['quote']['UZS']['price']
+        message += f"{name} ({symbol}) ~= {price:.5f} UZS\n"
+    if last_updated:
+        message += f"\n\n⏳ Kurslar {last_updated} vaqti bo'yicha."
+    else:
+        message += "\nKurslar  yangilanmadi."
+    await bot.send_message(callback.message.chat.id, message, reply_markup=setting_btn())
 
 
 @dp.callback_query(lambda callback_query: callback_query.data == 'back')
