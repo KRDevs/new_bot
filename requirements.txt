@@ -2,3 +2,4 @@ aiogram==3.2.0
 asyncio==3.4.3
 requests==2.31.0
 pytz
+python-dotenv

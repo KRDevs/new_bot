@@ -7,7 +7,7 @@ def exchange():
     url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest'
     parameters = {
         'start': '1',
-        'limit': '15',
+        'limit': '10',
         'convert': 'UZS'
     }
     headers = {
