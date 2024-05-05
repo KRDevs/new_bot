@@ -2,3 +2,4 @@ Pipfile
 Pipfile.lock
 .idea
 baza.db
+history.db

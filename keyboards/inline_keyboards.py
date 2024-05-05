@@ -35,7 +35,6 @@ def market_btn():
 
 def setting_btn():
     kb = [
-        [(types.InlineKeyboardButton(text="🆘 Yordam", callback_data="support"))],
         [(types.InlineKeyboardButton(text="📄 Monitoring", callback_data="monitoring"))],
         [(types.InlineKeyboardButton(text="⬅️ Orqaga", callback_data="back"))]
     ]
