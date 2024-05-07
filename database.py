@@ -1,8 +1,6 @@
 import sqlite3 as sq
-from datetime import datetime
 
 import openpyxl
-import pandas as pd
 
 db = sq.connect('baza.db')
 cursor = db.cursor()

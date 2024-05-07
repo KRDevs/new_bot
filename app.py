@@ -41,6 +41,7 @@ async def start_msg(message: types.Message):
                       doge_balance=0.0,
                       ton_balance=0.0,
                       ada_balance=0.0)
+    await message.delete()
 
 
 @dp.callback_query(lambda callback_query: callback_query.data == 'wallet')
@@ -59,11 +60,13 @@ async def wallet_msg(callback: types.CallbackQuery):
     await bot.send_message(chat_id=callback.message.chat.id,
                            text=f"Sizning hisobingiz \n\nUZS: {uz_balance}\n\nBTC: {btc_balance}\n\nETH: {eth_balance}\n\nUSDT: {usdt_balance}\n\nBNB: {bnb_balance}\n\nSOL: {sol_balance}\n\nUSDC: {usdc_balance}\n\nXRP: {xrp_balance}\n\nDOGE: {doge_balance}\n\nTON: {ton_balance}\n\nADA: {ada_balance}",
                            reply_markup=wallet_btn())
+    await bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.message_id)
 
 
 @dp.callback_query(lambda callback_query: callback_query.data == 'deposit')
 async def deposit_msg(callback: types.CallbackQuery, state=FSMContext):
     await bot.send_message(chat_id=callback.message.chat.id, text="Iltimos karta raqamingizni kiriting!")
+    await bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.message_id)
     await state.set_state(DepositState.card)
 
 
@@ -74,7 +77,7 @@ async def deposit_card(message: types.Message, state=FSMContext):
         await message.answer("Iltimos summani kiriting")
         await state.set_state(DepositState.depositSum)
     else:
-        await message.answer("Karta raqami noto'g'ri, ilitmos qaytadan kiriting!")
+        await message.answer("Karta raqami noto'g'ri, iltimos qaytadan kiriting!")
         await state.set_state(DepositState.card)
 
 
@@ -105,6 +108,7 @@ async def deposit_sum(message: types.Message, state=FSMContext):
 @dp.callback_query(lambda callback_query: callback_query.data == 'withdraw')
 async def withdraw_msg(callback: types.CallbackQuery, state=FSMContext):
     await bot.send_message(chat_id=callback.message.chat.id, text="Iltimos karta raqamingizni kiriting!")
+    await bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.message_id)
     await state.set_state(WithdrawState.card)
 
 
@@ -154,19 +158,23 @@ async def market_msg(callback: types.CallbackQuery):
     await bot.send_message(chat_id=callback.message.chat.id,
                            text="🗳 P2P Market\n Siz bu bo'limda kriptovalyuta sotib olishingiz yoki sotishingiz mumkin. Agar siz biror muammoga duch kelsangiz iltimos biz bilan bog'laning!",
                            reply_markup=market_btn())
+    await bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.message_id)
 
 
 @dp.callback_query(lambda callback_query: callback_query.data == 'sell')
 async def sell_msg(callback: types.CallbackQuery, state=FSMContext):
     await bot.send_message(chat_id=callback.message.chat.id, text="Sotmoqchi bo'lgan kriptovalyutani tanlang",
                            reply_markup=crypto_currency())
+    await bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.message_id)
     await state.set_state(SellState.currency)
 
 
 @dp.message(SellState.currency)
 async def sell_currency(message: types.Message, state: FSMContext):
     await state.update_data(currency=message.text)
-    await message.answer("Kriptovalyuta miqdorini kiriting!", reply_markup=types.ReplyKeyboardRemove())
+    uz_balance = await get_balance(user_id=message.from_user.id, valute="uz")
+    await message.answer(f"Sizning balansingiz:{uz_balance}UZS. Kriptovalyuta miqdorini kiriting!",
+                         reply_markup=types.ReplyKeyboardRemove())
     await state.set_state(SellState.value)
 
 
@@ -180,7 +188,9 @@ async def sell_value(message: types.Message, state=FSMContext):
         crypto_balance = await get_balance(user_id=message.from_user.id, valute=crypto_valute)
         crypto_price = get_crypto_price(crypto_valute.upper())
         if crypto_balance >= crypto_value:
-            await message.answer(f"{crypto_value} {crypto_valute} muvaffaqiyatli sotildi", reply_markup=back_btn())
+            await message.answer(
+                f"{crypto_value} {crypto_valute.upper()} muvaffaqiyatli sotildi.1 {crypto_valute.upper()} == {crypto_price} UZS",
+                reply_markup=back_btn())
             await update_balance(user_id=message.from_user.id, valute=crypto_valute, new_balance=-1 * crypto_value)
             await update_balance(user_id=message.from_user.id, valute="uz", new_balance=crypto_price * crypto_value)
             await insert_history(user_id=message.from_user.id, username=message.from_user.username,
@@ -203,13 +213,16 @@ async def sell_value(message: types.Message, state=FSMContext):
 async def buy_msg(callback: types.CallbackQuery, state=FSMContext):
     await bot.send_message(chat_id=callback.message.chat.id, text="Sotib olmoqchi bo'lgan kriptovalyutani tanlang",
                            reply_markup=crypto_currency())
+    await bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.message_id)
     await state.set_state(BuyState.currency)
 
 
 @dp.message(BuyState.currency)
 async def buy_currency(message: types.Message, state: FSMContext):
     await state.update_data(currency=message.text)
-    await message.answer("Kriptovalyuta miqdorini kiriting!", reply_markup=types.ReplyKeyboardRemove())
+    uz_balance = await get_balance(user_id=message.from_user.id, valute="uz")
+    await message.answer(f"Sizning balansingiz:{uz_balance}UZS. Kriptovalyuta miqdorini kiriting!",
+                         reply_markup=types.ReplyKeyboardRemove())
     await state.set_state(BuyState.value)
 
 
@@ -223,7 +236,9 @@ async def buy_value(message: types.Message, state=FSMContext):
         uz_balance = await get_balance(user_id=message.from_user.id, valute="uz")
         crypto_price = get_crypto_price(crypto_valute.upper())
         if uz_balance >= crypto_value * crypto_price:
-            await message.answer(f"{crypto_value} {crypto_valute} muvaffaqiyatli sotib olindi", reply_markup=back_btn())
+            await message.answer(
+                f"{crypto_value} {crypto_valute} muvaffaqiyatli sotib olindi.1 {crypto_valute.upper()} == {crypto_price} UZS",
+                reply_markup=back_btn())
             await insert_history(user_id=message.from_user.id, username=message.from_user.username,
                                  firstname=message.from_user.first_name, lastname=message.from_user.last_name,
                                  created_at=datetime.datetime.now(), action_type="Kriptovalyuta sotib olish",
@@ -244,14 +259,15 @@ async def buy_value(message: types.Message, state=FSMContext):
 
 
 @dp.callback_query(lambda callback_query: callback_query.data == 'settings')
-async def market_msg(callback: types.CallbackQuery):
+async def settings_msg(callback: types.CallbackQuery):
     await bot.send_message(chat_id=callback.message.chat.id,
                            text="⚙️ Sozlamalar",
                            reply_markup=setting_btn())
+    await bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.message_id)
 
 
 @dp.callback_query(lambda callback_query: callback_query.data == 'currency')
-async def market_msg(callback: types.CallbackQuery):
+async def crypto_course(callback: types.CallbackQuery):
     cryptocurrencies, last_updated = exchange()
     if not cryptocurrencies:
         await bot.send_message(callback.message.chat.id, "Error fetching cryptocurrency data.")
@@ -265,13 +281,16 @@ async def market_msg(callback: types.CallbackQuery):
         message += f"{name} ({symbol}) ~= {price:.5f} UZS\n\n"
     if last_updated:
         message += f"\n\n⏳ Kurslar {last_updated} vaqti bo'yicha."
+        await bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.message_id)
     else:
         message += "\nKurslar  yangilanmadi."
+        await bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.message_id)
     await bot.send_message(callback.message.chat.id, message, reply_markup=back_btn())
 
 
 @dp.callback_query(lambda callback_query: callback_query.data == 'back')
 async def back_msg(callback: types.CallbackQuery):
+    await bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.message_id)
     await bot.send_message(chat_id=callback.message.chat.id,
                            text="👨‍💻 Xizmatlar👇",
                            reply_markup=services_btn())
@@ -281,6 +300,7 @@ async def back_msg(callback: types.CallbackQuery):
 async def back_msg(callback: types.CallbackQuery, state=FSMContext):
     await bot.send_message(chat_id=callback.message.chat.id,
                            text="Botni ishlatishda duch kelgan muammolaringizni yoki o'z talab-takliflaringizni yozing. Sizning har bir fikringiz biz uchun muhim!")
+    await bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.message_id)
     await state.set_state(ContactState.requirementTxt)
 
 
