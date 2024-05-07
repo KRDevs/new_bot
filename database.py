@@ -1,5 +1,4 @@
 import sqlite3 as sq
-from datetime import datetime
 
 import openpyxl
 
