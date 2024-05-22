@@ -24,25 +24,56 @@ async def db_start():
             xrp_balance REAL DEFAULT 0.0,
             doge_balance REAL DEFAULT 0.0,
             ton_balance REAL DEFAULT 0.0,
-            ada_balance REAL DEFAULT 0.0,
-            is_bot TEXT
-        )
+            ada_balance REAL DEFAULT 0.0       
+            )
     """)
     db.commit()
 
 
-async def create_user(user_id, username, firstname, lastname, created_at, is_bot, uz_balance, btc_balance, eth_balance,
+async def create_user(user_id, username, firstname, lastname, created_at, uz_balance, btc_balance, eth_balance,
                       usdt_balance, bnb_balance, sol_balance, usdc_balance, xrp_balance, doge_balance, ton_balance,
                       ada_balance):
     user = cursor.execute("SELECT 1 FROM User WHERE user_id=='{key}'".format(key=user_id)).fetchone()
     if not user:
-        cursor.execute("INSERT INTO User VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        cursor.execute("INSERT INTO User VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                        (
-                           user_id, username, firstname, lastname, created_at, is_bot, uz_balance, btc_balance,
+                           user_id, username, firstname, lastname, created_at, uz_balance, btc_balance,
                            eth_balance,
                            usdt_balance, bnb_balance, sol_balance, usdc_balance, xrp_balance, doge_balance, ton_balance,
                            ada_balance))
         db.commit()
+
+
+def get_users():
+    cursor.execute(
+        "SELECT * FROM User",
+    )
+    return cursor.fetchall()
+
+
+def export_users_table_to_excel():
+    users = get_users()
+
+    workbook = openpyxl.Workbook()
+    worksheet = workbook.active
+    worksheet.title = "Foydalanuvchilar"
+
+    headers = ["User ID", "Username", "First Name", "Last Name", "Ro'yxatdan o'tgan vaqti", "UZ Sum",
+               "BTC balans", "ETH balans", "USDT balans", "BNB balans", "SOL balans", "USDC balans", "XRP balans",
+               "DOGE balans", "TON balans", "ADA balans"]
+
+    for col_idx, header in enumerate(headers, start=1):
+        worksheet.cell(row=1, column=col_idx, value=header)
+
+    for row_idx, record in enumerate(users, start=2):
+        for col_idx, field in enumerate(record, start=1):
+            worksheet.cell(row=row_idx, column=col_idx, value=field)
+
+    filename = f"user_db.xlsx"
+
+    workbook.save(filename)
+
+    return filename
 
 
 async def update_balance(user_id, valute, new_balance):
