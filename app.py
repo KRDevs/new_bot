@@ -321,6 +321,7 @@ async def history(callback: types.CallbackQuery):
     res = types.FSInputFile(base_xsl)
     await bot.send_document(chat_id=callback.message.chat.id, document=res,
                             caption="Sizning barcha amaliyotlariz ro'yxati", reply_markup=back_btn())
+    await bot.delete_message(chat_id=callback.message.chat.id, message_id=callback.message.message_id)
     os.remove(f'{callback.from_user.id}.xlsx')
 
 
