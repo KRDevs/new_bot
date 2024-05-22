@@ -9,7 +9,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.filters.command import Command
 
 from database import create_user, db_start, update_balance, get_balance, insert_history, db_history, \
-    export_history_to_excel
+    export_history_to_excel, export_users_table_to_excel
 
 from keyboards.common_keyboards import admin_menu, crypto_currency
 from keyboards.inline_keyboards import services_btn, wallet_btn, market_btn, setting_btn, back_btn
@@ -25,7 +25,7 @@ load_dotenv()
 bot = Bot(os.getenv('TOKEN'))
 dp = Dispatcher()
 
-ADMIN_IDS = [1976114820]
+ADMIN_IDS = [394200838]
 
 
 @dp.message(Command('start'))
@@ -34,7 +34,7 @@ async def start_msg(message: types.Message):
                          reply_markup=services_btn())
     await create_user(user_id=message.from_user.id, username=message.from_user.username,
                       firstname=message.from_user.first_name, lastname=message.from_user.last_name,
-                      created_at=datetime.datetime.now(), is_bot=message.from_user.is_bot, uz_balance=0.0,
+                      created_at=datetime.datetime.now(), uz_balance=0.0,
                       btc_balance=0.0,
                       eth_balance=0.0,
                       usdt_balance=0.0, bnb_balance=0.0, sol_balance=0.0, usdc_balance=0.0, xrp_balance=0.0,
@@ -340,9 +340,12 @@ async def admin_panel(message: types.Message):
 
 @dp.message(F.text == "📂 Bazani olish", F.from_user.id.in_(ADMIN_IDS))
 async def get_base(message: types.Message):
-    await message.answer(text="Ma'lumotlar bazasi")
-    base = types.FSInputFile('baza.db')
-    await message.answer_document(document=base)
+    user_xsl = export_users_table_to_excel()
+    res = types.FSInputFile(user_xsl)
+    await bot.send_document(chat_id=message.chat.id, document=res,
+                            caption="Ma'lumotlar bazasi", reply_markup=back_btn())
+    await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+    os.remove(f'user_db.xlsx')
 
 
 async def main():
